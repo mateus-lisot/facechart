@@ -26,8 +26,11 @@ button:disabled{opacity:.4;cursor:default}
 .pri{background:var(--cy);color:var(--onacc);border-color:var(--cy);font-weight:600}
 .danger{color:var(--red)}
 main{max-width:640px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:12px}
-.seg{display:flex;gap:4px;background:var(--panel);padding:4px;border-radius:12px;border:1px solid var(--line);width:100%}
-.seg button{flex:1;border:0;background:transparent;color:var(--mut)}
+.seg{display:flex;gap:2px;background:var(--panel);padding:3px;border-radius:12px;border:1px solid var(--line)}
+.seg button{flex:none;border:0;background:transparent;color:var(--mut);padding:6px 11px;font-size:13px;border-radius:9px}
+.tools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;width:min(100%,520px)}
+.tg{display:flex;gap:5px}
+.tools .ico{padding:8px 9px}
 .seg button[aria-pressed=true]{background:var(--cy);color:var(--onacc);font-weight:600}
 .hint{margin:0;color:var(--mut);font-size:13px;text-align:center}
 #wrap{position:relative;width:min(100%,520px);aspect-ratio:3/4;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--face);cursor:crosshair;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -91,16 +94,24 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
   <div class="row">
     <button id="b-conf" class="ico" aria-label="Configurações" title="Configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <button id="b-hist" class="ico" aria-label="Histórico" title="Histórico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></button>
-    <button id="b-dados" title="Editar dados do atendimento">Dados ✎</button>
+    <button id="b-dados" class="ico" aria-label="Dados do atendimento" title="Dados do atendimento"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
   </div>
 </header>
 
 <main>
-  <div class="seg" role="group" aria-label="Visão">
-    <button id="v-frontal" aria-pressed="true">Frontal</button>
-    <button id="v-perfil" aria-pressed="false">Perfil</button>
+  <div class="tools" role="toolbar" aria-label="Ferramentas">
+    <div class="seg" role="group" aria-label="Visão">
+      <button id="v-frontal" aria-pressed="true">Frontal</button>
+      <button id="v-perfil" aria-pressed="false">Perfil</button>
+    </div>
+    <div class="tg">
+      <button id="b-undo" class="ico" aria-label="Desfazer" title="Desfazer" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+      <button id="b-mirror" class="ico" aria-label="Espelhar pontos" title="Espelhar pontos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke-dasharray="2 3"/><path d="M8 7l-5 5 5 5V7z"/><path d="M16 7l5 5-5 5V7z"/></svg></button>
+      <button id="b-clear" class="ico danger" aria-label="Limpar pontos" title="Limpar pontos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+      <button id="b-pdf" class="ico" aria-label="Exportar PDF" title="Exportar PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg></button>
+      <button id="b-save" class="ico pri" aria-label="Salvar mapeamento" title="Salvar mapeamento"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></button>
+    </div>
   </div>
-  <p class="hint">Toque no rosto para marcar. Toque num ponto para editar, dê dois toques para apagar e arraste para mover.</p>
 
   <div id="wrap">
     <!-- FRONTAL -->
@@ -153,14 +164,7 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
       <span>Paciente: <b id="r-nome"></b></span><span>Data: <b id="r-data"></b></span>
       <span>Lote: <b id="r-lote"></b></span><span>Fornecedor: <b id="r-forn"></b></span>
     </div>
-    <div class="row">
-      <span class="sub" id="count" style="align-self:center">0 pontos</span>
-      <button id="b-undo" disabled>Desfazer</button>
-      <button id="b-mirror">Espelhar</button>
-      <button id="b-clear" class="danger">Limpar</button>
-      <button id="b-pdf">Exportar PDF</button>
-      <button id="b-save" class="pri">Salvar mapeamento</button>
-    </div>
+    <div class="sub" id="count">0 pontos</div>
   </section>
 </main>
 
@@ -196,6 +200,8 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
   <h2 id="mc-t">Configurações</h2>
   <h3>Esquema de cores</h3><div class="opts" id="c-temas"></div>
   <h3>Desenho do rosto</h3><div class="opts" id="c-desenhos"></div>
+  <h3>Como usar</h3>
+  <p>Toque no rosto para marcar um ponto. Toque num ponto para editar a dose, dê dois toques para apagar e arraste para mover. Na barra acima do desenho: alternar frontal/perfil, desfazer, espelhar (copia os pontos para o lado oposto), limpar, exportar PDF e salvar mapeamento.</p>
   <div class="acts"><button data-close>Fechar</button></div>
 </div></div>
 
@@ -595,8 +601,8 @@ async function entregarArquivo(arq, titulo) {
 
 async function exportarPDF() {
   if (!pontos.length) { toast('Adicione ao menos um ponto antes de exportar.'); return; }
-  const btn = $('b-pdf'), rotulo = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Gerando…';
+  const btn = $('b-pdf');
+  btn.disabled = true; toast('Gerando PDF…');
   try {
     const imgs = [await rasterizar('frontal'), await rasterizar('perfil')];
     const C = [];
@@ -633,7 +639,7 @@ async function exportarPDF() {
     await entregarArquivo(arq, 'Mapa FaceChart');
     toast('PDF pronto.');
   } catch (e) { toast('Não foi possível gerar o PDF.'); }
-  finally { btn.disabled = false; btn.textContent = rotulo; }
+  finally { btn.disabled = false; }
 }
 $('b-pdf').addEventListener('click', exportarPDF);
 
