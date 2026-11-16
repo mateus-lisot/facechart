@@ -38,6 +38,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-i
 #layer{position:absolute;inset:0}
 .pin{position:absolute;transform:translate(-50%,-50%);background:var(--cy);color:var(--onacc);font-weight:700;font-size:12px;padding:3px 8px;border-radius:99px;border:2px solid var(--wh);box-shadow:0 2px 8px #0008;cursor:grab;touch-action:none;user-select:none}
 .pin:active{cursor:grabbing}
+.pin{-webkit-touch-callout:none}
 .sum{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
 .total{font-size:38px;font-weight:700;color:var(--cy);line-height:1}
 .sub{color:var(--mut);font-size:13px;min-height:18px}
@@ -200,8 +201,9 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
   <h2 id="mc-t">Configurações</h2>
   <h3>Esquema de cores</h3><div class="opts" id="c-temas"></div>
   <h3>Desenho do rosto</h3><div class="opts" id="c-desenhos"></div>
+  <h3>Marcação de pontos</h3><div class="opts" id="c-marcacao"></div>
   <h3>Como usar</h3>
-  <p>Toque no rosto para marcar um ponto. Toque num ponto para editar a dose, dê dois toques para apagar e arraste para mover. Na barra acima do desenho: alternar frontal/perfil, desfazer, espelhar (copia os pontos para o lado oposto), limpar, exportar PDF e salvar mapeamento.</p>
+  <p id="c-ajuda"></p>
   <div class="acts"><button data-close>Fechar</button></div>
 </div></div>
 
@@ -219,7 +221,7 @@ let sessoes = [];
 let visao = 'frontal';
 let undoStack = [];
 let alvo = null;
-let conf = { tema: 'blueprint', desenho: 'blueprint' };
+let conf = { tema: 'blueprint', desenho: 'blueprint', marcacao: 'padrao' };
 
 /* ---------- temas e desenhos ---------- */
 const CHAVES = ['bg','bg2','panel','line','cy','gold','tx','mut','onacc','face','grid','wh'];
@@ -229,6 +231,10 @@ const TEMAS = [
   ['rose','Rosé noturno','dark','#170d1c','#2c1636','#221229','#3d2347','#ff7eb6','#ffd27a','#fbe9f3','#b995ac','#2a0716','#1b0f21','#4a2b57','#fbe9f3'],
   ['ambar','Âmbar','dark','#17110a','#2b1e0f','#21170d','#3d2b17','#ffb454','#9be0d0','#f7ecd9','#b7a283','#2a1700','#1b130a','#4a3720','#f7ecd9'],
   ['claro','Claro','light','#eef3f9','#ffffff','#ffffff','#cfdbea','#0a7ea4','#b86e00','#12233f','#5b7194','#ffffff','#f8fbff','#c5d3e6','#2b4264']
+];
+const MARCACOES = [
+  ['padrao','Padrão','Toque abre as unidades; dois toques apagam'],
+  ['profissional','Profissional','Toque cria 1 U; dois toques somam +1 U']
 ];
 const DESENHOS = [
   ['blueprint','Blueprint','Grade e círculos de proporção'],
@@ -309,7 +315,7 @@ function mudarVisao(v) {
 const wrap = $('wrap');
 const clamp = v => Math.max(0.02, Math.min(0.98, v));
 
-let ultimoToque = {}, editTimer = null, bloqueio = 0;
+let ultimoToque = {}, editTimer = null, bloqueio = 0, bloqueioModal = 0;
 
 function apagarPonto(p) {
   snapshot();
@@ -318,19 +324,35 @@ function apagarPonto(p) {
   render(); toast('Ponto apagado. Use Desfazer para voltar.');
 }
 
+function somarUnidade(p) {
+  if (p.u >= 100) { toast('Limite de 100 U por ponto.'); return; }
+  snapshot(); p.u += 1;
+  bloqueio = Date.now() + 350;   // evita clique residual criar ponto novo
+  render();
+}
+
 function ligarPin(pin, p) {
-  let start = null, moved = false, antes = null;
+  let start = null, moved = false, antes = null, longo = false, pressTimer = null;
+  pin.addEventListener('contextmenu', e => e.preventDefault());
   pin.addEventListener('click', e => e.stopPropagation());
   pin.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editarPonto(p); } else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); apagarPonto(p); } });
   pin.addEventListener('pointerdown', e => {
     e.stopPropagation();
-    start = { x: e.clientX, y: e.clientY }; moved = false; antes = JSON.stringify(pontos);
+    start = { x: e.clientX, y: e.clientY }; moved = false; longo = false; antes = JSON.stringify(pontos);
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {   // segurar: abre a edição do ponto (nos dois modos)
+      if (!start || moved) return;
+      longo = true; clearTimeout(editTimer); ultimoToque = {};
+      bloqueioModal = Date.now() + 500;
+      if (navigator.vibrate) navigator.vibrate(12);
+      editarPonto(p);
+    }, 500);
     pin.setPointerCapture(e.pointerId);
   });
   pin.addEventListener('pointermove', e => {
     if (!start) return;
     if (!moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-    moved = true;
+    moved = true; clearTimeout(pressTimer);
     const r = wrap.getBoundingClientRect();
     p.x = clamp((e.clientX - r.left) / r.width);
     p.y = clamp((e.clientY - r.top) / r.height);
@@ -340,20 +362,32 @@ function ligarPin(pin, p) {
   pin.addEventListener('pointerup', e => {
     if (!start) return;
     pin.releasePointerCapture(e.pointerId);
-    start = null;
+    start = null; clearTimeout(pressTimer);
+    if (longo) { longo = false; return; }
     if (moved) { undoStack.push(antes); render(); return; }
     const agora = Date.now();
     clearTimeout(editTimer);
-    if (ultimoToque.id === p.id && agora - ultimoToque.t < 350) { ultimoToque = {}; apagarPonto(p); }
+    const duplo = ultimoToque.id === p.id && agora - ultimoToque.t < 350;
+    if (conf.marcacao === 'profissional') {
+      ultimoToque = { id: p.id, t: agora };
+      if (duplo) somarUnidade(p);
+    } else if (duplo) { ultimoToque = {}; apagarPonto(p); }
     else { ultimoToque = { id: p.id, t: agora }; editTimer = setTimeout(() => editarPonto(p), 300); }
   });
-  pin.addEventListener('pointercancel', () => { start = null; });
+  pin.addEventListener('pointercancel', () => { start = null; clearTimeout(pressTimer); });
 }
 
 wrap.addEventListener('click', e => {
   if (Date.now() < bloqueio) return;
   const r = wrap.getBoundingClientRect();
-  alvo = { x: clamp((e.clientX - r.left) / r.width), y: clamp((e.clientY - r.top) / r.height) };
+  const x = clamp((e.clientX - r.left) / r.width), y = clamp((e.clientY - r.top) / r.height);
+  if (conf.marcacao === 'profissional') {   // toque cria direto um ponto de 1 U
+    snapshot();
+    const novo = { id: Date.now() + Math.random(), x, y, u: 1, v: visao };
+    pontos.push(novo); ultimoToque = { id: novo.id, t: Date.now() };
+    render(); return;
+  }
+  alvo = { x, y };
   $('md-t').textContent = 'Novo ponto';
   $('md-del').style.display = 'none';
   abrir('m-dose');
@@ -661,17 +695,26 @@ function opcao(nome, desc, ativo, onClick, swatch) {
   b.addEventListener('click', onClick);
   return b;
 }
+function ajuda() {
+  const modo = conf.marcacao === 'profissional'
+    ? 'Toque no rosto para criar um ponto de 1 U. Toque duas vezes no mesmo ponto para somar +1 U.'
+    : 'Toque no rosto para marcar e escolher as unidades. Toque num ponto para editar ou dê dois toques para apagar.';
+  return `${modo} Segure um ponto para abrir a edição (alterar a dose ou apagar) e arraste para mover. Na barra acima do desenho: alternar frontal/perfil, desfazer, espelhar (copia os pontos para o lado oposto), limpar, exportar PDF e salvar mapeamento.`;
+}
 function montarConf() {
   const gt = $('c-temas'), gd = $('c-desenhos');
   gt.replaceChildren(); gd.replaceChildren();
   TEMAS.forEach(t => gt.appendChild(opcao(t[1], '', conf.tema === t[0], () => { conf.tema = t[0]; aplicarConf(); persistir(); montarConf(); }, [t[4], t[7], t[8]])));
+  const gm = $('c-marcacao'); gm.replaceChildren();
+  MARCACOES.forEach(m => gm.appendChild(opcao(m[1], m[2], conf.marcacao === m[0], () => { conf.marcacao = m[0]; persistir(); montarConf(); })));
+  $('c-ajuda').textContent = ajuda();
   DESENHOS.forEach(d => gd.appendChild(opcao(d[1], d[2], conf.desenho === d[0], () => { conf.desenho = d[0]; aplicarConf(); persistir(); montarConf(); })));
 }
 $('b-conf').addEventListener('click', () => { montarConf(); abrir('m-conf'); });
 
 /* ---------- fechar modais ---------- */
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', fechar));
-document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) fechar(); }));
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m && Date.now() > bloqueioModal) fechar(); }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
 
 $('v-frontal').addEventListener('click', () => mudarVisao('frontal'));
