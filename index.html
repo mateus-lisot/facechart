@@ -2,26 +2,35 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1020">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FaceChart">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
 <title>FaceChart – Mapa de pontos</title>
 <style>
 :root{--bg:#0a1020;--bg2:#16233f;--panel:#101a2e;--line:#1f2f4d;--cy:#5fd4f0;--gold:#f0b84a;--tx:#e6eefc;--mut:#8ea3c4;--red:#ee5a5a;--onacc:var(--onacc);--face:#0b1326;--grid:#2c4465;--wh:#e6eefc}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(120% 80% at 20% 0%,var(--bg2),var(--bg));color:var(--tx);font:15px/1.4 "Trebuchet MS","Segoe UI",sans-serif;min-height:100vh}
+body{margin:0;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);background:radial-gradient(120% 80% at 20% 0%,var(--bg2),var(--bg));color:var(--tx);font:15px/1.4 "Trebuchet MS","Segoe UI",sans-serif;min-height:100vh}
 header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 70%,transparent)}
 h1{font-size:17px;margin:0;color:var(--cy);font-weight:600}
 button{font:inherit;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer}
 button:hover{border-color:var(--cy)}
+.ico{display:flex;align-items:center;padding:8px 10px}
+.ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 button:focus-visible,.pin:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 button:disabled{opacity:.4;cursor:default}
 .pri{background:var(--cy);color:var(--onacc);border-color:var(--cy);font-weight:600}
 .danger{color:var(--red)}
-main{max-width:640px;margin:0 auto;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+main{max-width:640px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:12px}
 .seg{display:flex;gap:4px;background:var(--panel);padding:4px;border-radius:12px;border:1px solid var(--line);width:100%}
 .seg button{flex:1;border:0;background:transparent;color:var(--mut)}
 .seg button[aria-pressed=true]{background:var(--cy);color:var(--onacc);font-weight:600}
 .hint{margin:0;color:var(--mut);font-size:13px;text-align:center}
-#wrap{position:relative;width:min(100%,520px);aspect-ratio:3/4;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--face);cursor:crosshair;touch-action:manipulation}
+#wrap{position:relative;width:min(100%,520px);aspect-ratio:3/4;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--face);cursor:crosshair;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #wrap svg.face{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #layer{position:absolute;inset:0}
 .pin{position:absolute;transform:translate(-50%,-50%);background:var(--cy);color:var(--onacc);font-weight:700;font-size:12px;padding:3px 8px;border-radius:99px;border:2px solid var(--wh);box-shadow:0 2px 8px #0008;cursor:grab;touch-action:none;user-select:none}
@@ -59,7 +68,7 @@ main{max-width:640px;margin:0 auto;padding:14px;display:flex;flex-direction:colu
 .doses{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .doses button{padding:12px 0;font-weight:700}
 label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px}
-input,textarea{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+input,textarea{width:100%;font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
 input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
 .acts{display:flex;gap:8px;margin-top:14px}.acts button{flex:1}
 .item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -80,8 +89,8 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
 <header>
   <h1>FaceChart</h1>
   <div class="row">
-    <button id="b-hist">Histórico</button>
-    <button id="b-conf" aria-label="Configurações" title="Configurações" style="font-size:18px;line-height:1;padding:7px 11px">⚙</button>
+    <button id="b-conf" class="ico" aria-label="Configurações" title="Configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <button id="b-hist" class="ico" aria-label="Histórico" title="Histórico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></button>
     <button id="b-dados" title="Editar dados do atendimento">Dados ✎</button>
   </div>
 </header>
@@ -149,6 +158,7 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
       <button id="b-undo" disabled>Desfazer</button>
       <button id="b-mirror">Espelhar</button>
       <button id="b-clear" class="danger">Limpar</button>
+      <button id="b-pdf">Exportar PDF</button>
       <button id="b-save" class="pri">Salvar mapeamento</button>
     </div>
   </section>
@@ -174,8 +184,10 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
 
 <!-- Modal histórico -->
 <div class="modal" id="m-hist" role="dialog" aria-modal="true" aria-labelledby="mh-t"><div class="box">
-  <h2 id="mh-t">Histórico</h2><p>Mapeamentos salvos neste aparelho.</p>
+  <h2 id="mh-t">Histórico</h2><p>Salvos neste aparelho. Exporte para guardar um backup em arquivo.</p>
   <div id="hist-list"></div>
+  <div class="acts"><button id="h-exp">Exportar</button><button id="h-imp">Importar</button></div>
+  <input type="file" id="h-file" accept=".json,application/json" hidden>
   <div class="acts"><button data-close>Fechar</button></div>
 </div></div>
 
@@ -429,12 +441,209 @@ function listarHistorico() {
 }
 $('b-hist').addEventListener('click', () => { listarHistorico(); abrir('m-hist'); });
 
+/* ---------- exportar / importar histórico ---------- */
+async function exportarHistorico() {
+  if (!sessoes.length) { toast('Não há mapeamentos para exportar.'); return; }
+  const json = JSON.stringify({ app: 'facechart', versao: 2, exportadoEm: new Date().toISOString(), sessoes }, null, 2);
+  const nome = `facechart-historico-${hoje()}.json`;
+  const arq = new File([json], nome, { type: 'application/json' });
+  try {   // no iPhone/iPad abre a folha de compartilhar (Salvar em Arquivos, AirDrop...)
+    if (navigator.canShare && navigator.canShare({ files: [arq] })) { await navigator.share({ files: [arq], title: 'Histórico FaceChart' }); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(arq);
+  const a = document.createElement('a'); a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Arquivo exportado.');
+}
+const txt = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+const num = v => typeof v === 'number' && isFinite(v);
+function normalizarSessao(s) {
+  if (!s || typeof s !== 'object' || !s.dados || typeof s.dados !== 'object' || !Array.isArray(s.pontos)) return null;
+  const pts = s.pontos
+    .filter(p => p && num(p.x) && num(p.y) && num(p.u) && p.u > 0 && p.u <= 999 && (p.v === 'frontal' || p.v === 'perfil'))
+    .map(p => ({ id: Date.now() + Math.random(), x: clamp(p.x), y: clamp(p.y), u: p.u, v: p.v }));
+  if (!pts.length) return null;
+  const d = s.dados;
+  return {
+    id: num(s.id) ? s.id : Date.now() + Math.random(),
+    dados: { nome: txt(d.nome, 80) || 'Paciente', data: txt(d.data, 10), lote: txt(d.lote, 40), fornecedor: txt(d.fornecedor, 60), obs: txt(d.obs, 500) },
+    pontos: pts, total: pts.reduce((a, p) => a + p.u, 0)
+  };
+}
+function importarHistorico(arquivo) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const j = JSON.parse(r.result);
+      const lista = Array.isArray(j) ? j : j.sessoes;
+      if (!Array.isArray(lista)) throw new Error('formato');
+      let ok = 0;
+      lista.forEach(x => {
+        const n = normalizarSessao(x);
+        if (!n || sessoes.some(e => e.id === n.id)) return;   // inválido ou já existente
+        sessoes.push(n); ok++;
+      });
+      sessoes.sort((a, b) => b.id - a.id);
+      persistir(); listarHistorico();
+      const ign = lista.length - ok;
+      toast(`${ok} importado(s)${ign ? `, ${ign} ignorado(s)` : ''}.`);
+    } catch (e) { toast('Arquivo inválido.'); }
+  };
+  r.readAsText(arquivo);
+}
+$('h-exp').addEventListener('click', exportarHistorico);
+$('h-imp').addEventListener('click', () => $('h-file').click());
+$('h-file').addEventListener('change', e => { const f = e.target.files[0]; if (f) importarHistorico(f); e.target.value = ''; });
+
+/* ---------- exportar PDF ---------- */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const escXml = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'opacity'];
+
+// Serializa o SVG "congelando" os estilos atuais (tema e desenho escolhidos)
+function ser(el) {
+  if (el.nodeType === 3) return escXml(el.textContent);
+  if (el.nodeType !== 1) return '';
+  const cs = getComputedStyle(el);
+  if (cs.display === 'none') return '';
+  const tag = el.tagName;
+  if (tag === 'use') {
+    const alvoUse = document.querySelector(el.getAttribute('href'));
+    return `<g transform="translate(${el.getAttribute('x') || 0} ${el.getAttribute('y') || 0})">${[...alvoUse.children].map(ser).join('')}</g>`;
+  }
+  let at = '';
+  for (const a of el.attributes) { if (a.name !== 'class' && a.name !== 'style') at += ` ${a.name}="${escXml(a.value)}"`; }
+  const st = PROPS.map(k => (k === 'fill' && (el.getAttribute('fill') || '').startsWith('url(')) ? '' : `${k}:${cs.getPropertyValue(k)}`).filter(Boolean);
+  if (tag === 'text') st.push(`font-size:${cs.fontSize}`, `font-family:${cs.fontFamily.replace(/"/g, "'")}`);
+  return `<${tag}${at} style="${st.join(';')}">${[...el.childNodes].map(ser).join('')}</${tag}>`;
+}
+
+function carregarImagem(url) {
+  return new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => erro(new Error('imagem')); i.src = url; });
+}
+
+async function rasterizar(v) {
+  const W = 900, H = 1200;
+  const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="${W}" height="${H}"><rect width="600" height="800" fill="${css('--face')}"/><defs>${ser($('grid'))}</defs>${[...$('svg-' + v).children].map(ser).join('')}</svg>`;
+  const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }));
+  try {
+    const img = await carregarImagem(url);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    ctx.font = 'bold 30px "Trebuchet MS","Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    pontos.filter(p => p.v === v).forEach(p => {
+      const t = fmt(p.u) + 'U', w = ctx.measureText(t).width + 28, h = 44, r = h / 2, x = p.x * W, y = p.y * H;
+      ctx.beginPath(); ctx.arc(x - w / 2 + r, y, r, Math.PI / 2, Math.PI * 1.5); ctx.arc(x + w / 2 - r, y, r, Math.PI * 1.5, Math.PI / 2); ctx.closePath();
+      ctx.fillStyle = css('--cy'); ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = css('--wh'); ctx.stroke();
+      ctx.fillStyle = css('--onacc'); ctx.fillText(t, x, y + 2);
+    });
+    const bin = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return { bytes, w: W, h: H };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// Gerador mínimo de PDF (A4, 1 página, fontes Helvetica, 2 imagens JPEG)
+const enc = t => Uint8Array.from(t, ch => ch.charCodeAt(0) & 255);
+const l1 = t => String(t).replace(/[^\x20-\x7E\xA0-\xFF]/g, '?').replace(/[\\()]/g, '\\$&');
+function montarPDF(conteudo, imgs) {
+  const partes = [], off = []; let tam = 0;
+  const add = b => { const u = typeof b === 'string' ? enc(b) : b; partes.push(u); tam += u.length; };
+  const obj = (n, corpo, stream) => {
+    off[n] = tam;
+    if (stream) { add(`${n} 0 obj\n<< ${corpo} /Length ${stream.length} >>\nstream\n`); add(stream); add('\nendstream\nendobj\n'); }
+    else add(`${n} 0 obj\n${corpo}\nendobj\n`);
+  };
+  add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /I1 7 0 R /I2 8 0 R >> >> /Contents 4 0 R >>');
+  obj(4, '', enc(conteudo));
+  obj(5, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  obj(6, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  imgs.forEach((im, i) => obj(7 + i, `/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`, im.bytes));
+  const xref = tam;
+  add('xref\n0 9\n0000000000 65535 f \n' + off.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+  add(`trailer\n<< /Size 9 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(partes, { type: 'application/pdf' });
+}
+
+function quebrar(t, n) {
+  const out = [];
+  t.split(/\n/).forEach(par => {
+    let l = '';
+    par.split(/\s+/).forEach(w => { if ((l + ' ' + w).trim().length > n) { if (l) out.push(l); l = w; } else l = (l + ' ' + w).trim(); });
+    out.push(l);
+  });
+  return out;
+}
+
+async function entregarArquivo(arq, titulo) {
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [arq] })) { await navigator.share({ files: [arq], title: titulo }); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(arq);
+  const a = document.createElement('a'); a.href = url; a.download = arq.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function exportarPDF() {
+  if (!pontos.length) { toast('Adicione ao menos um ponto antes de exportar.'); return; }
+  const btn = $('b-pdf'), rotulo = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando…';
+  try {
+    const imgs = [await rasterizar('frontal'), await rasterizar('perfil')];
+    const C = [];
+    const T = (x, y, f, sz, t, g = 0) => C.push(`BT /${f} ${sz} Tf ${g} g ${x} ${y} Td (${l1(t)}) Tj ET`);
+    const soma = a => a.reduce((s, p) => s + p.u, 0);
+    const fr = pontos.filter(p => p.v === 'frontal'), pf = pontos.filter(p => p.v === 'perfil');
+
+    T(40, 800, 'F2', 18, 'FaceChart - Mapa de aplicação');
+    [['Paciente:', dados.nome], ['Data:', dataBR(dados.data)], ['Lote:', dados.lote || '-'], ['Fornecedor:', dados.fornecedor || '-']].forEach(([k, v], i) => {
+      T(40, 772 - i * 14, 'F2', 11, k); T(110, 772 - i * 14, 'F1', 11, v);
+    });
+    let y = 716;
+    if (dados.obs) {
+      T(40, y, 'F2', 11, 'Observações:'); y -= 14;
+      quebrar(dados.obs, 95).slice(0, 5).forEach(l => { T(40, y, 'F1', 10, l); y -= 13; });
+      y -= 4;
+    }
+    const IW = 250, IH = IW * 4 / 3, yb = y - 8 - IH;
+    T(40, y, 'F2', 11, `Frontal (${fr.length} ponto${fr.length === 1 ? '' : 's'}, ${fmt(soma(fr))} U)`);
+    T(305, y, 'F2', 11, `Perfil (${pf.length} ponto${pf.length === 1 ? '' : 's'}, ${fmt(soma(pf))} U)`);
+    C.push(`q ${IW} 0 0 ${IH} 40 ${yb} cm /I1 Do Q`, `q ${IW} 0 0 ${IH} 305 ${yb} cm /I2 Do Q`);
+
+    let yy = yb - 28;
+    T(40, yy, 'F2', 16, `Total: ${fmt(soma(pontos))} U`);
+    T(200, yy, 'F1', 11, `${pontos.length} ponto${pontos.length === 1 ? '' : 's'} marcados`);
+    const lado = f => fmt(soma(fr.filter(f)));
+    yy -= 18; T(40, yy, 'F1', 11, `Visão frontal - lado direito do paciente: ${lado(p => p.x < 0.48)} U | centro: ${lado(p => p.x >= 0.48 && p.x <= 0.52)} U | lado esquerdo: ${lado(p => p.x > 0.52)} U`);
+    const cont = {}; pontos.forEach(p => { cont[p.u] = (cont[p.u] || 0) + 1; });
+    yy -= 16; T(40, yy, 'F1', 11, 'Doses: ' + Object.keys(cont).map(Number).sort((a, b) => b - a).map(u => `${fmt(u)} U x ${cont[u]}`).join('  |  '));
+    T(40, 30, 'F1', 8, `Gerado em ${new Date().toLocaleString('pt-BR')} - FaceChart`, 0.5);
+
+    const slug = (dados.nome || 'paciente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 30) || 'paciente';
+    const arq = new File([montarPDF(C.join('\n'), imgs)], `facechart-${slug}-${dados.data || hoje()}.pdf`, { type: 'application/pdf' });
+    await entregarArquivo(arq, 'Mapa FaceChart');
+    toast('PDF pronto.');
+  } catch (e) { toast('Não foi possível gerar o PDF.'); }
+  finally { btn.disabled = false; btn.textContent = rotulo; }
+}
+$('b-pdf').addEventListener('click', exportarPDF);
+
 /* ---------- configurações ---------- */
 function aplicarConf() {
   const t = TEMAS.find(x => x[0] === conf.tema) || TEMAS[0];
   const st = document.documentElement.style;
   CHAVES.forEach((k, i) => st.setProperty('--' + k, t[3 + i]));
   st.colorScheme = t[2];
+  const mt = document.querySelector('meta[name=theme-color]'); if (mt) mt.content = t[3];
   wrap.dataset.d = DESENHOS.some(d => d[0] === conf.desenho) ? conf.desenho : 'blueprint';
 }
 function opcao(nome, desc, ativo, onClick, swatch) {
