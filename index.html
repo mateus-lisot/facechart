@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaceChart – Mapa de pontos</title>
+<style>
+:root{--bg:#0a1020;--bg2:#16233f;--panel:#101a2e;--line:#1f2f4d;--cy:#5fd4f0;--gold:#f0b84a;--tx:#e6eefc;--mut:#8ea3c4;--red:#ee5a5a;--onacc:var(--onacc);--face:#0b1326;--grid:#2c4465;--wh:#e6eefc}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(120% 80% at 20% 0%,var(--bg2),var(--bg));color:var(--tx);font:15px/1.4 "Trebuchet MS","Segoe UI",sans-serif;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 70%,transparent)}
+h1{font-size:17px;margin:0;color:var(--cy);font-weight:600}
+button{font:inherit;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--cy)}
+button:focus-visible,.pin:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+.pri{background:var(--cy);color:var(--onacc);border-color:var(--cy);font-weight:600}
+.danger{color:var(--red)}
+main{max-width:640px;margin:0 auto;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.seg{display:flex;gap:4px;background:var(--panel);padding:4px;border-radius:12px;border:1px solid var(--line);width:100%}
+.seg button{flex:1;border:0;background:transparent;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--cy);color:var(--onacc);font-weight:600}
+.hint{margin:0;color:var(--mut);font-size:13px;text-align:center}
+#wrap{position:relative;width:min(100%,520px);aspect-ratio:3/4;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--face);cursor:crosshair;touch-action:manipulation}
+#wrap svg.face{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#layer{position:absolute;inset:0}
+.pin{position:absolute;transform:translate(-50%,-50%);background:var(--cy);color:var(--onacc);font-weight:700;font-size:12px;padding:3px 8px;border-radius:99px;border:2px solid var(--wh);box-shadow:0 2px 8px #0008;cursor:grab;touch-action:none;user-select:none}
+.pin:active{cursor:grabbing}
+.sum{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+.total{font-size:38px;font-weight:700;color:var(--cy);line-height:1}
+.sub{color:var(--mut);font-size:13px;min-height:18px}
+.info{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;color:var(--mut);font-size:13px}
+.info b{color:var(--tx);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+/* SVG */
+.c{stroke:var(--cy);fill:none;stroke-width:3}.w{stroke:var(--wh);fill:none;stroke-width:2}
+.t{stroke:var(--cy);fill:none;stroke-width:1;opacity:.28}.d{stroke:var(--wh);fill:none;stroke-width:1.2;stroke-dasharray:2 6;opacity:.7}.gr{stroke:var(--grid)}
+.gd{stroke:var(--gold);fill:none;stroke-width:1.4}.lb{fill:var(--gold);font-size:12px;font-family:inherit}
+/* estilos de desenho */
+.l-zn{display:none}.zn{fill:var(--gold);fill-opacity:.2;stroke:var(--gold);stroke-width:1.2;stroke-dasharray:4 3}
+#wrap:not([data-d=blueprint]) :is(.l-grid,.l-t,.l-ar){display:none}
+#wrap[data-d=zonas] .l-zn{display:inline}
+#wrap[data-d=minimal] .c{stroke-width:2}
+#wrap[data-d=solido] .head{fill:color-mix(in srgb,var(--cy) 14%,var(--face))}
+#wrap[data-d=neon] .c{stroke-width:3.5;filter:drop-shadow(0 0 5px var(--cy))}
+#wrap[data-d=neon] .w{filter:drop-shadow(0 0 4px var(--wh))}
+/* configurações */
+.box h3{margin:14px 0 8px;font-size:13px;color:var(--mut);font-weight:600}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px;text-align:left;font-size:13px}
+.opt[aria-pressed=true]{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy)}
+.opt small{color:var(--mut);font-size:11px}
+.sw{display:flex;gap:3px}.sw i{width:14px;height:14px;border-radius:50%;border:1px solid #8888}
+/* modais */
+.modal{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 82%,transparent);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.open{display:flex}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow:auto}
+.box h2{margin:0 0 4px;font-size:17px}.box p{margin:0 0 14px;color:var(--mut);font-size:13px}
+.doses{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.doses button{padding:12px 0;font-weight:700}
+label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px}
+input,textarea{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
+.acts{display:flex;gap:8px;margin-top:14px}.acts button{flex:1}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.item small{color:var(--mut);display:block}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--cy);color:var(--onacc);padding:10px 16px;border-radius:99px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<!-- definições compartilhadas -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="grid" width="80" height="74" patternUnits="userSpaceOnUse" x="60" y="30"><path d="M0 0H80M0 0V74" fill="none" class="gr" stroke-width="1" opacity=".6"/></pattern>
+    <g id="mk"><circle r="9" class="gd"/><circle r="4" class="gd"/><path d="M-6 0H6M0-6V6" class="gd"/></g>
+  </defs>
+</svg>
+
+<header>
+  <h1>FaceChart</h1>
+  <div class="row">
+    <button id="b-hist">Histórico</button>
+    <button id="b-conf" aria-label="Configurações" title="Configurações" style="font-size:18px;line-height:1;padding:7px 11px">⚙</button>
+    <button id="b-dados" title="Editar dados do atendimento">Dados ✎</button>
+  </div>
+</header>
+
+<main>
+  <div class="seg" role="group" aria-label="Visão">
+    <button id="v-frontal" aria-pressed="true">Frontal</button>
+    <button id="v-perfil" aria-pressed="false">Perfil</button>
+  </div>
+  <p class="hint">Toque no rosto para marcar. Toque num ponto para editar, dê dois toques para apagar e arraste para mover.</p>
+
+  <div id="wrap">
+    <!-- FRONTAL -->
+    <svg id="svg-frontal" class="face" viewBox="0 0 600 800" aria-label="Rosto frontal">
+      <rect class="l-grid gr" x="60" y="30" width="480" height="740" fill="url(#grid)"/>
+      <g class="t l-t"><circle cx="300" cy="240" r="25"/><circle cx="300" cy="240" r="50"/><circle cx="300" cy="240" r="75"/><circle cx="300" cy="240" r="100"/><circle cx="300" cy="240" r="125"/>
+        <circle cx="300" cy="330" r="14"/><circle cx="300" cy="330" r="30"/><circle cx="300" cy="330" r="48"/>
+        <ellipse cx="300" cy="520" rx="210" ry="230"/><circle cx="300" cy="690" r="95"/></g>
+      <path class="c head" d="M300 40C130 40 95 260 100 420C105 600 190 750 300 770C410 750 495 600 500 420C505 260 470 40 300 40Z"/>
+      <path class="w l-ar" d="M118 350C135 170 230 130 300 130C370 130 465 170 482 350"/>
+      <path class="w l-ar" d="M104 400C100 500 170 535 245 515"/><path class="w l-ar" d="M496 400C500 500 430 535 355 515"/>
+      <circle cx="190" cy="425" r="88" class="d l-ar"/><circle cx="410" cy="425" r="88" class="d l-ar"/>
+      <line x1="300" y1="10" x2="300" y2="790" class="d"/>
+      <path class="w" d="M118 378Q190 335 265 372Q272 388 255 388Q190 366 125 392Z"/><path class="w" d="M482 378Q410 335 335 372Q328 388 345 388Q410 366 475 392Z"/>
+      <path class="c" d="M150 428Q195 395 245 428Q195 446 150 428Z"/><circle cx="197" cy="422" r="17" class="c"/>
+      <path class="c" d="M355 428Q405 395 450 428Q405 446 355 428Z"/><circle cx="403" cy="422" r="17" class="c"/>
+      <path class="c" d="M276 440V560H298"/><path class="c" d="M255 590Q250 560 272 548M345 590Q350 560 328 548M260 592Q270 612 300 614Q330 612 340 592"/>
+      <path class="c" d="M240 668Q270 646 300 656Q330 646 360 668Q330 692 300 690Q270 692 240 668Z"/>
+      <circle cx="300" cy="738" r="32" class="w"/>
+      <g class="l-zn"><ellipse class="zn" cx="300" cy="190" rx="150" ry="48"/><ellipse class="zn" cx="300" cy="338" rx="46" ry="30"/><ellipse class="zn" cx="128" cy="430" rx="30" ry="42"/><ellipse class="zn" cx="472" cy="430" rx="30" ry="42"/><ellipse class="zn" cx="170" cy="610" rx="28" ry="46"/><ellipse class="zn" cx="430" cy="610" rx="28" ry="46"/><ellipse class="zn" cx="300" cy="738" rx="40" ry="30"/></g>
+      <use href="#mk" x="300" y="170"/><use href="#mk" x="300" y="340"/><use href="#mk" x="150" y="428"/><use href="#mk" x="450" y="428"/>
+      <use href="#mk" x="240" y="668"/><use href="#mk" x="360" y="668"/><use href="#mk" x="300" y="770"/>
+      <text class="lb" x="312" y="165">Frontal</text><text class="lb" x="312" y="344">Glabela</text>
+      <text class="lb" x="6" y="400">Pés de galinha</text><text class="lb" x="594" y="400" text-anchor="end">Pés de galinha</text>
+      <text class="lb" x="312" y="792">Mento</text><text class="lb" x="594" y="24" text-anchor="end">Mapa facial · frontal</text>
+    </svg>
+    <!-- PERFIL -->
+    <svg id="svg-perfil" class="face" viewBox="0 0 600 800" aria-label="Rosto de perfil" style="display:none">
+      <rect class="l-grid gr" x="60" y="30" width="480" height="740" fill="url(#grid)"/>
+      <g class="t l-t"><circle cx="330" cy="220" r="30"/><circle cx="330" cy="220" r="60"/><circle cx="330" cy="220" r="90"/><circle cx="330" cy="220" r="120"/>
+        <circle cx="440" cy="345" r="45"/><circle cx="440" cy="345" r="85"/><circle cx="330" cy="560" r="140"/></g>
+      <path class="c head" d="M300 40C420 38 475 140 472 270L478 335L468 372L530 505Q535 525 505 530L470 535L472 560Q482 582 468 600Q478 620 466 640Q470 660 462 690Q450 740 400 765L330 770C250 740 190 700 170 600C120 480 110 330 130 220C150 110 220 45 300 40Z"/>
+      <path class="w l-ar" d="M400 80C450 130 462 200 460 270"/><ellipse cx="300" cy="470" rx="28" ry="50" class="w"/>
+      <path class="w" d="M405 305Q440 290 475 303"/><path class="c" d="M418 342Q445 322 466 342Q445 352 418 342Z"/><circle cx="445" cy="340" r="9" class="c"/>
+      <path class="w" d="M470 588L438 590"/><path class="c" d="M200 700Q300 760 400 765"/>
+      <line x1="60" y1="345" x2="540" y2="345" class="d"/><line x1="300" y1="10" x2="300" y2="790" class="d" opacity=".4"/>
+      <g class="l-zn"><ellipse class="zn" cx="415" cy="170" rx="38" ry="60"/><ellipse class="zn" cx="455" cy="300" rx="18" ry="22"/><ellipse class="zn" cx="400" cy="345" rx="22" ry="28"/><ellipse class="zn" cx="335" cy="620" rx="40" ry="50"/><ellipse class="zn" cx="445" cy="690" rx="20" ry="28"/></g>
+      <use href="#mk" x="440" y="170"/><use href="#mk" x="470" y="300"/><use href="#mk" x="412" y="345"/><use href="#mk" x="330" y="640"/><use href="#mk" x="464" y="690"/>
+      <text class="lb" x="452" y="166">Frontal</text><text class="lb" x="482" y="296">Glabela</text>
+      <text class="lb" x="404" y="372" text-anchor="end">Pés de galinha</text><text class="lb" x="322" y="664" text-anchor="end">Masseter</text>
+      <text class="lb" x="474" y="716">Mento</text><text class="lb" x="594" y="24" text-anchor="end">Mapa facial · perfil</text>
+    </svg>
+    <div id="layer"></div>
+  </div>
+
+  <section class="sum">
+    <div><div class="sub">Total de unidades</div><div class="total" id="total">0 U</div></div>
+    <div class="sub" id="sub"></div>
+    <div class="info">
+      <span>Paciente: <b id="r-nome"></b></span><span>Data: <b id="r-data"></b></span>
+      <span>Lote: <b id="r-lote"></b></span><span>Fornecedor: <b id="r-forn"></b></span>
+    </div>
+    <div class="row">
+      <span class="sub" id="count" style="align-self:center">0 pontos</span>
+      <button id="b-undo" disabled>Desfazer</button>
+      <button id="b-mirror">Espelhar</button>
+      <button id="b-clear" class="danger">Limpar</button>
+      <button id="b-save" class="pri">Salvar mapeamento</button>
+    </div>
+  </section>
+</main>
+
+<!-- Modal dose -->
+<div class="modal" id="m-dose" role="dialog" aria-modal="true" aria-labelledby="md-t"><div class="box">
+  <h2 id="md-t">Novo ponto</h2><p>Escolha as unidades (U).</p>
+  <div class="doses" id="doses"></div>
+  <div class="acts"><button id="md-del" class="danger" style="display:none">Apagar ponto</button><button data-close>Cancelar</button></div>
+</div></div>
+
+<!-- Modal dados -->
+<div class="modal" id="m-dados" role="dialog" aria-modal="true" aria-labelledby="mdd-t"><div class="box">
+  <h2 id="mdd-t">Dados do atendimento</h2>
+  <label for="f-nome">Paciente</label><input id="f-nome" maxlength="80">
+  <label for="f-data">Data</label><input id="f-data" type="date">
+  <label for="f-lote">Lote</label><input id="f-lote" maxlength="40">
+  <label for="f-forn">Fornecedor</label><input id="f-forn" maxlength="60">
+  <label for="f-obs">Observações</label><textarea id="f-obs" rows="3" maxlength="500"></textarea>
+  <div class="acts"><button data-close>Cancelar</button><button id="md-ok" class="pri">Salvar dados</button></div>
+</div></div>
+
+<!-- Modal histórico -->
+<div class="modal" id="m-hist" role="dialog" aria-modal="true" aria-labelledby="mh-t"><div class="box">
+  <h2 id="mh-t">Histórico</h2><p>Mapeamentos salvos neste aparelho.</p>
+  <div id="hist-list"></div>
+  <div class="acts"><button data-close>Fechar</button></div>
+</div></div>
+
+<!-- Modal configurações -->
+<div class="modal" id="m-conf" role="dialog" aria-modal="true" aria-labelledby="mc-t"><div class="box">
+  <h2 id="mc-t">Configurações</h2>
+  <h3>Esquema de cores</h3><div class="opts" id="c-temas"></div>
+  <h3>Desenho do rosto</h3><div class="opts" id="c-desenhos"></div>
+  <div class="acts"><button data-close>Fechar</button></div>
+</div></div>
+
+<div id="toast" role="status"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'facechart_v2';
+const DOSES = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12];
+const hoje = () => new Date().toISOString().slice(0, 10);
+
+let dados = { nome: 'Paciente', data: hoje(), lote: '', fornecedor: '', obs: '' };
+let pontos = [];              // {id, x, y, u, v}  x,y em fração (0 a 1) da imagem
+let sessoes = [];
+let visao = 'frontal';
+let undoStack = [];
+let alvo = null;
+let conf = { tema: 'blueprint', desenho: 'blueprint' };
+
+/* ---------- temas e desenhos ---------- */
+const CHAVES = ['bg','bg2','panel','line','cy','gold','tx','mut','onacc','face','grid','wh'];
+const TEMAS = [
+  ['blueprint','Azul técnico','dark','#0a1020','#16233f','#101a2e','#1f2f4d','#5fd4f0','#f0b84a','#e6eefc','#8ea3c4','#06202a','#0b1326','#2c4465','#e6eefc'],
+  ['esmeralda','Esmeralda','dark','#07130f','#0f2a20','#0d1f18','#1c3a2d','#4ade9a','#f2d16b','#e5f6ee','#86ad9b','#04210f','#081a13','#21493a','#e5f6ee'],
+  ['rose','Rosé noturno','dark','#170d1c','#2c1636','#221229','#3d2347','#ff7eb6','#ffd27a','#fbe9f3','#b995ac','#2a0716','#1b0f21','#4a2b57','#fbe9f3'],
+  ['ambar','Âmbar','dark','#17110a','#2b1e0f','#21170d','#3d2b17','#ffb454','#9be0d0','#f7ecd9','#b7a283','#2a1700','#1b130a','#4a3720','#f7ecd9'],
+  ['claro','Claro','light','#eef3f9','#ffffff','#ffffff','#cfdbea','#0a7ea4','#b86e00','#12233f','#5b7194','#ffffff','#f8fbff','#c5d3e6','#2b4264']
+];
+const DESENHOS = [
+  ['blueprint','Blueprint','Grade e círculos de proporção'],
+  ['minimal','Minimalista','Só contorno e traços'],
+  ['solido','Sólido','Silhueta preenchida'],
+  ['zonas','Zonas','Áreas de aplicação destacadas'],
+  ['neon','Neon','Traços com brilho']
+];              // ponto em edição ou {x,y} de um novo ponto
+
+/* ---------- armazenamento ---------- */
+function carregar() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (s.dados) dados = { ...dados, ...s.dados };
+    if (Array.isArray(s.pontos)) pontos = s.pontos;
+    if (Array.isArray(s.sessoes)) sessoes = s.sessoes;
+    if (s.conf) conf = { ...conf, ...s.conf };
+  } catch (e) { /* storage indisponível ou corrompido: segue com valores padrão */ }
+}
+function persistir() {
+  try { localStorage.setItem(KEY, JSON.stringify({ dados, pontos, sessoes, conf })); }
+  catch (e) { toast('Não foi possível gravar neste navegador.'); }
+}
+
+/* ---------- utilitários ---------- */
+const fmt = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+const dataBR = iso => iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : (iso || '—');
+let tt;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2200); }
+function snapshot() { undoStack.push(JSON.stringify(pontos)); if (undoStack.length > 50) undoStack.shift(); }
+function abrir(id) { $(id).classList.add('open'); }
+function fechar() { document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open')); alvo = null; }
+
+/* ---------- render ---------- */
+function render() {
+  const layer = $('layer');
+  layer.replaceChildren();
+  pontos.filter(p => p.v === visao).forEach(p => {
+    const pin = document.createElement('div');
+    pin.className = 'pin';
+    pin.tabIndex = 0;
+    pin.setAttribute('role', 'button');
+    pin.setAttribute('aria-label', `Ponto de ${fmt(p.u)} unidades. Toque para editar.`);
+    pin.style.left = p.x * 100 + '%';
+    pin.style.top = p.y * 100 + '%';
+    pin.textContent = fmt(p.u) + 'U';
+    ligarPin(pin, p);
+    layer.appendChild(pin);
+  });
+
+  const total = pontos.reduce((s, p) => s + p.u, 0);
+  $('total').textContent = fmt(total) + ' U';
+  $('count').textContent = `${pontos.length} ponto${pontos.length === 1 ? '' : 's'}`;
+  // subtotais por lado (frontal): esquerda da tela = lado direito do paciente
+  const fr = pontos.filter(p => p.v === 'frontal');
+  const soma = f => fmt(fr.filter(f).reduce((s, p) => s + p.u, 0));
+  $('sub').textContent = fr.length ? `Dir. ${soma(p => p.x < 0.48)} U · Centro ${soma(p => p.x >= 0.48 && p.x <= 0.52)} U · Esq. ${soma(p => p.x > 0.52)} U` : '';
+  $('b-undo').disabled = undoStack.length === 0;
+
+  $('r-nome').textContent = dados.nome || '—';
+  $('r-data').textContent = dataBR(dados.data);
+  $('r-lote').textContent = dados.lote || '—';
+  $('r-forn').textContent = dados.fornecedor || '—';
+  persistir();
+}
+
+function mudarVisao(v) {
+  visao = v;
+  $('svg-frontal').style.display = v === 'frontal' ? '' : 'none';
+  $('svg-perfil').style.display = v === 'perfil' ? '' : 'none';
+  $('v-frontal').setAttribute('aria-pressed', v === 'frontal');
+  $('v-perfil').setAttribute('aria-pressed', v === 'perfil');
+  $('b-mirror').disabled = v !== 'frontal';
+  render();
+}
+
+/* ---------- interação com os pontos ---------- */
+const wrap = $('wrap');
+const clamp = v => Math.max(0.02, Math.min(0.98, v));
+
+let ultimoToque = {}, editTimer = null, bloqueio = 0;
+
+function apagarPonto(p) {
+  snapshot();
+  pontos = pontos.filter(q => q.id !== p.id);
+  bloqueio = Date.now() + 500;   // evita que o clique residual crie um ponto novo
+  render(); toast('Ponto apagado. Use Desfazer para voltar.');
+}
+
+function ligarPin(pin, p) {
+  let start = null, moved = false, antes = null;
+  pin.addEventListener('click', e => e.stopPropagation());
+  pin.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editarPonto(p); } else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); apagarPonto(p); } });
+  pin.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    start = { x: e.clientX, y: e.clientY }; moved = false; antes = JSON.stringify(pontos);
+    pin.setPointerCapture(e.pointerId);
+  });
+  pin.addEventListener('pointermove', e => {
+    if (!start) return;
+    if (!moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+    moved = true;
+    const r = wrap.getBoundingClientRect();
+    p.x = clamp((e.clientX - r.left) / r.width);
+    p.y = clamp((e.clientY - r.top) / r.height);
+    pin.style.left = p.x * 100 + '%';
+    pin.style.top = p.y * 100 + '%';
+  });
+  pin.addEventListener('pointerup', e => {
+    if (!start) return;
+    pin.releasePointerCapture(e.pointerId);
+    start = null;
+    if (moved) { undoStack.push(antes); render(); return; }
+    const agora = Date.now();
+    clearTimeout(editTimer);
+    if (ultimoToque.id === p.id && agora - ultimoToque.t < 350) { ultimoToque = {}; apagarPonto(p); }
+    else { ultimoToque = { id: p.id, t: agora }; editTimer = setTimeout(() => editarPonto(p), 300); }
+  });
+  pin.addEventListener('pointercancel', () => { start = null; });
+}
+
+wrap.addEventListener('click', e => {
+  if (Date.now() < bloqueio) return;
+  const r = wrap.getBoundingClientRect();
+  alvo = { x: clamp((e.clientX - r.left) / r.width), y: clamp((e.clientY - r.top) / r.height) };
+  $('md-t').textContent = 'Novo ponto';
+  $('md-del').style.display = 'none';
+  abrir('m-dose');
+});
+
+function editarPonto(p) {
+  alvo = p;
+  $('md-t').textContent = `Editar ponto (${fmt(p.u)} U)`;
+  $('md-del').style.display = '';
+  abrir('m-dose');
+}
+
+function escolherDose(u) {
+  if (!alvo) return;
+  snapshot();
+  if (alvo.id) alvo.u = u;
+  else pontos.push({ id: Date.now() + Math.random(), x: alvo.x, y: alvo.y, u, v: visao });
+  fechar(); render();
+}
+
+DOSES.forEach(u => {
+  const b = document.createElement('button');
+  b.textContent = fmt(u);
+  b.addEventListener('click', () => escolherDose(u));
+  $('doses').appendChild(b);
+});
+
+$('md-del').addEventListener('click', () => {
+  if (!alvo || !alvo.id) return;
+  snapshot();
+  pontos = pontos.filter(p => p.id !== alvo.id);
+  fechar(); render(); toast('Ponto apagado. Use Desfazer para voltar.');
+});
+
+/* ---------- ações ---------- */
+$('b-undo').addEventListener('click', () => {
+  if (!undoStack.length) return;
+  pontos = JSON.parse(undoStack.pop()); render();
+});
+$('b-clear').addEventListener('click', () => {
+  if (!pontos.length) return;
+  if (confirm('Limpar todos os pontos deste atendimento?')) { snapshot(); pontos = []; render(); }
+});
+$('b-mirror').addEventListener('click', () => {
+  const fr = pontos.filter(p => p.v === 'frontal');
+  const novos = [];
+  fr.forEach(p => {
+    if (Math.abs(p.x - 0.5) < 0.03) return;
+    const mx = 1 - p.x;
+    if (fr.some(q => Math.hypot(q.x - mx, q.y - p.y) < 0.03)) return;
+    novos.push({ id: Date.now() + Math.random(), x: mx, y: p.y, u: p.u, v: 'frontal' });
+  });
+  if (!novos.length) { toast('Nada para espelhar.'); return; }
+  snapshot(); pontos.push(...novos); render(); toast(`${novos.length} ponto(s) espelhado(s).`);
+});
+$('b-save').addEventListener('click', () => {
+  if (!pontos.length) { toast('Adicione ao menos um ponto antes de salvar.'); return; }
+  sessoes.unshift({ id: Date.now(), dados: { ...dados }, pontos: JSON.parse(JSON.stringify(pontos)), total: pontos.reduce((s, p) => s + p.u, 0) });
+  render(); toast('Mapeamento salvo no histórico.');
+});
+
+/* ---------- dados ---------- */
+$('b-dados').addEventListener('click', () => {
+  $('f-nome').value = dados.nome; $('f-data').value = dados.data; $('f-lote').value = dados.lote;
+  $('f-forn').value = dados.fornecedor; $('f-obs').value = dados.obs;
+  abrir('m-dados'); $('f-nome').focus();
+});
+$('md-ok').addEventListener('click', () => {
+  dados = { nome: $('f-nome').value.trim() || 'Paciente', data: $('f-data').value || hoje(), lote: $('f-lote').value.trim(), fornecedor: $('f-forn').value.trim(), obs: $('f-obs').value.trim() };
+  fechar(); render();
+});
+
+/* ---------- histórico ---------- */
+function listarHistorico() {
+  const box = $('hist-list'); box.replaceChildren();
+  if (!sessoes.length) { const p = document.createElement('p'); p.textContent = 'Nenhum mapeamento salvo ainda.'; box.appendChild(p); return; }
+  sessoes.forEach(s => {
+    const it = document.createElement('div'); it.className = 'item';
+    const info = document.createElement('div');
+    info.textContent = s.dados.nome;
+    const sm = document.createElement('small');
+    sm.textContent = `${dataBR(s.dados.data)} · ${fmt(s.total)} U · ${s.pontos.length} pontos`;
+    info.appendChild(sm);
+    const ab = document.createElement('button'); ab.textContent = 'Abrir';
+    ab.addEventListener('click', () => { snapshot(); dados = { ...s.dados }; pontos = JSON.parse(JSON.stringify(s.pontos)); fechar(); render(); });
+    const ex = document.createElement('button'); ex.textContent = 'Excluir'; ex.className = 'danger';
+    ex.addEventListener('click', () => { if (confirm('Excluir este mapeamento?')) { sessoes = sessoes.filter(x => x.id !== s.id); persistir(); listarHistorico(); } });
+    const ac = document.createElement('div'); ac.className = 'row'; ac.append(ab, ex);
+    it.append(info, ac); box.appendChild(it);
+  });
+}
+$('b-hist').addEventListener('click', () => { listarHistorico(); abrir('m-hist'); });
+
+/* ---------- configurações ---------- */
+function aplicarConf() {
+  const t = TEMAS.find(x => x[0] === conf.tema) || TEMAS[0];
+  const st = document.documentElement.style;
+  CHAVES.forEach((k, i) => st.setProperty('--' + k, t[3 + i]));
+  st.colorScheme = t[2];
+  wrap.dataset.d = DESENHOS.some(d => d[0] === conf.desenho) ? conf.desenho : 'blueprint';
+}
+function opcao(nome, desc, ativo, onClick, swatch) {
+  const b = document.createElement('button');
+  b.className = 'opt'; b.setAttribute('aria-pressed', ativo);
+  if (swatch) { const sw = document.createElement('span'); sw.className = 'sw'; swatch.forEach(c => { const i = document.createElement('i'); i.style.background = c; sw.appendChild(i); }); b.appendChild(sw); }
+  const n = document.createElement('span'); n.textContent = nome; b.appendChild(n);
+  if (desc) { const sm = document.createElement('small'); sm.textContent = desc; b.appendChild(sm); }
+  b.addEventListener('click', onClick);
+  return b;
+}
+function montarConf() {
+  const gt = $('c-temas'), gd = $('c-desenhos');
+  gt.replaceChildren(); gd.replaceChildren();
+  TEMAS.forEach(t => gt.appendChild(opcao(t[1], '', conf.tema === t[0], () => { conf.tema = t[0]; aplicarConf(); persistir(); montarConf(); }, [t[4], t[7], t[8]])));
+  DESENHOS.forEach(d => gd.appendChild(opcao(d[1], d[2], conf.desenho === d[0], () => { conf.desenho = d[0]; aplicarConf(); persistir(); montarConf(); })));
+}
+$('b-conf').addEventListener('click', () => { montarConf(); abrir('m-conf'); });
+
+/* ---------- fechar modais ---------- */
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', fechar));
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) fechar(); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
+
+$('v-frontal').addEventListener('click', () => mudarVisao('frontal'));
+$('v-perfil').addEventListener('click', () => mudarVisao('perfil'));
+
+carregar();
+aplicarConf();
+mudarVisao('frontal');
+</script>
+</body>
+</html>
