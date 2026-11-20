@@ -49,6 +49,16 @@ main{max-width:640px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-i
 .c{stroke:var(--cy);fill:none;stroke-width:3}.w{stroke:var(--wh);fill:none;stroke-width:2}
 .t{stroke:var(--cy);fill:none;stroke-width:1;opacity:.28}.d{stroke:var(--wh);fill:none;stroke-width:1.2;stroke-dasharray:2 6;opacity:.7}.gr{stroke:var(--grid)}
 .gd{stroke:var(--gold);fill:none;stroke-width:1.4}.lb{fill:var(--gold);font-size:12px;font-family:inherit}
+/* lixeira */
+#lixeira{position:absolute;right:10px;bottom:10px;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1.5px dashed var(--mut);color:var(--mut);opacity:.55;pointer-events:none;z-index:2;transition:transform .18s,opacity .18s,background .18s,color .18s,border-color .18s}
+#lixeira svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+#lixeira .lid{transform-box:fill-box;transform-origin:left bottom;transition:transform .18s}
+#lixeira.on{opacity:1;transform:scale(1.08)}
+#lixeira.hot{opacity:1;transform:scale(1.3);color:#fff;background:var(--red);border-color:var(--red);border-style:solid}
+#lixeira.hot .lid{transform:rotate(-28deg)}
+#lixeira.bump{animation:lixo .4s ease}
+@keyframes lixo{0%{transform:scale(1.3)}35%{transform:scale(1.15) rotate(-9deg)}70%{transform:scale(1.28) rotate(6deg)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#lixeira,#lixeira .lid{transition:none}#lixeira.bump{animation:none}}
 /* estilos de desenho */
 .l-zn{display:none}.zn{fill:var(--gold);fill-opacity:.2;stroke:var(--gold);stroke-width:1.2;stroke-dasharray:4 3}
 #wrap:not([data-d=blueprint]) :is(.l-grid,.l-t,.l-ar){display:none}
@@ -156,6 +166,7 @@ input:focus,textarea:focus{outline:2px solid var(--cy);border-color:transparent}
       <text class="lb" x="474" y="716">Mento</text><text class="lb" x="594" y="24" text-anchor="end">Mapa facial · perfil</text>
     </svg>
     <div id="layer"></div>
+    <div id="lixeira" aria-hidden="true"><svg viewBox="0 0 24 24"><g class="lid"><path d="M3 6h18"/><path d="M8 6V4h8v2"/></g><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></div>
   </div>
 
   <section class="sum">
@@ -234,7 +245,7 @@ const TEMAS = [
 ];
 const MARCACOES = [
   ['padrao','Padrão','Toque abre as unidades; dois toques apagam'],
-  ['profissional','Profissional','Toque cria 1 U; dois toques somam +1 U']
+  ['rapido','Rápido','Toque cria 1 U; dois toques somam +1 U']
 ];
 const DESENHOS = [
   ['blueprint','Blueprint','Grade e círculos de proporção'],
@@ -252,6 +263,7 @@ function carregar() {
     if (Array.isArray(s.pontos)) pontos = s.pontos;
     if (Array.isArray(s.sessoes)) sessoes = s.sessoes;
     if (s.conf) conf = { ...conf, ...s.conf };
+    if (conf.marcacao === 'profissional') conf.marcacao = 'rapido';   // nome antigo
   } catch (e) { /* storage indisponível ou corrompido: segue com valores padrão */ }
 }
 function persistir() {
@@ -269,10 +281,10 @@ function abrir(id) { $(id).classList.add('open'); }
 function fechar() { document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open')); alvo = null; }
 
 /* ---------- render ---------- */
-function render() {
+function render(manter) {
   const layer = $('layer');
-  layer.replaceChildren();
-  pontos.filter(p => p.v === visao).forEach(p => {
+  if (!manter) layer.replaceChildren();
+  pontos.filter(p => !manter && p.v === visao).forEach(p => {
     const pin = document.createElement('div');
     pin.className = 'pin';
     pin.tabIndex = 0;
@@ -331,6 +343,32 @@ function somarUnidade(p) {
   render();
 }
 
+function sobreLixeira(e) {
+  const r = $('lixeira').getBoundingClientRect(), m = 14;
+  return e.clientX >= r.left - m && e.clientX <= r.right + m && e.clientY >= r.top - m && e.clientY <= r.bottom + m;
+}
+
+// Ponto solto na lixeira: apaga os dados já e anima o pino sendo "jogado" lá dentro
+function descartar(pin, p, antes) {
+  const lix = $('lixeira');
+  undoStack.push(antes);                       // desfazer devolve o ponto à posição original
+  pontos = pontos.filter(q => q.id !== p.id);
+  bloqueio = Date.now() + 700;
+  render(true);                                // atualiza totais sem refazer os pontos
+  const w = wrap.getBoundingClientRect(), l = lix.getBoundingClientRect();
+  pin.style.pointerEvents = 'none';
+  pin.style.transition = 'left .42s cubic-bezier(.15,.7,.35,1), top .42s cubic-bezier(.55,0,.9,.55), transform .42s ease-in, opacity .42s ease-in';
+  pin.style.left = ((l.left + l.width / 2 - w.left) / w.width * 100) + '%';
+  pin.style.top = ((l.top + l.height / 2 - w.top) / w.height * 100) + '%';
+  pin.style.transform = 'translate(-50%,-50%) scale(.25) rotate(300deg)';
+  pin.style.opacity = '.2';
+  setTimeout(() => {                           // tampa fecha e a lixeira "balança"
+    lix.classList.remove('hot', 'on'); lix.classList.add('bump');
+    setTimeout(() => lix.classList.remove('bump'), 420);
+  }, 380);
+  setTimeout(() => { render(); toast('Ponto apagado. Use Desfazer para voltar.'); }, 480);
+}
+
 function ligarPin(pin, p) {
   let start = null, moved = false, antes = null, longo = false, pressTimer = null;
   pin.addEventListener('contextmenu', e => e.preventDefault());
@@ -353,35 +391,41 @@ function ligarPin(pin, p) {
     if (!start) return;
     if (!moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
     moved = true; clearTimeout(pressTimer);
+    $('lixeira').classList.add('on');
     const r = wrap.getBoundingClientRect();
     p.x = clamp((e.clientX - r.left) / r.width);
     p.y = clamp((e.clientY - r.top) / r.height);
     pin.style.left = p.x * 100 + '%';
     pin.style.top = p.y * 100 + '%';
+    $('lixeira').classList.toggle('hot', sobreLixeira(e));
   });
   pin.addEventListener('pointerup', e => {
     if (!start) return;
     pin.releasePointerCapture(e.pointerId);
     start = null; clearTimeout(pressTimer);
     if (longo) { longo = false; return; }
-    if (moved) { undoStack.push(antes); render(); return; }
+    if (moved) {
+      if (sobreLixeira(e)) { descartar(pin, p, antes); return; }
+      $('lixeira').classList.remove('on', 'hot');
+      undoStack.push(antes); render(); return;
+    }
     const agora = Date.now();
     clearTimeout(editTimer);
     const duplo = ultimoToque.id === p.id && agora - ultimoToque.t < 350;
-    if (conf.marcacao === 'profissional') {
+    if (conf.marcacao === 'rapido') {
       ultimoToque = { id: p.id, t: agora };
       if (duplo) somarUnidade(p);
     } else if (duplo) { ultimoToque = {}; apagarPonto(p); }
     else { ultimoToque = { id: p.id, t: agora }; editTimer = setTimeout(() => editarPonto(p), 300); }
   });
-  pin.addEventListener('pointercancel', () => { start = null; clearTimeout(pressTimer); });
+  pin.addEventListener('pointercancel', () => { start = null; clearTimeout(pressTimer); $('lixeira').classList.remove('on', 'hot'); });
 }
 
 wrap.addEventListener('click', e => {
   if (Date.now() < bloqueio) return;
   const r = wrap.getBoundingClientRect();
   const x = clamp((e.clientX - r.left) / r.width), y = clamp((e.clientY - r.top) / r.height);
-  if (conf.marcacao === 'profissional') {   // toque cria direto um ponto de 1 U
+  if (conf.marcacao === 'rapido') {   // toque cria direto um ponto de 1 U
     snapshot();
     const novo = { id: Date.now() + Math.random(), x, y, u: 1, v: visao };
     pontos.push(novo); ultimoToque = { id: novo.id, t: Date.now() };
@@ -696,10 +740,10 @@ function opcao(nome, desc, ativo, onClick, swatch) {
   return b;
 }
 function ajuda() {
-  const modo = conf.marcacao === 'profissional'
+  const modo = conf.marcacao === 'rapido'
     ? 'Toque no rosto para criar um ponto de 1 U. Toque duas vezes no mesmo ponto para somar +1 U.'
     : 'Toque no rosto para marcar e escolher as unidades. Toque num ponto para editar ou dê dois toques para apagar.';
-  return `${modo} Segure um ponto para abrir a edição (alterar a dose ou apagar) e arraste para mover. Na barra acima do desenho: alternar frontal/perfil, desfazer, espelhar (copia os pontos para o lado oposto), limpar, exportar PDF e salvar mapeamento.`;
+  return `${modo} Segure um ponto para abrir a edição (alterar a dose ou apagar) e arraste para mover (solte o ponto na lixeira, no canto do desenho, para apagar). Na barra acima do desenho: alternar frontal/perfil, desfazer, espelhar (copia os pontos para o lado oposto), limpar, exportar PDF e salvar mapeamento.`;
 }
 function montarConf() {
   const gt = $('c-temas'), gd = $('c-desenhos');
